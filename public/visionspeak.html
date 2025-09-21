@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VisionSpeak — Demo UI</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#7dd3fc; --glass: rgba(255,255,255,0.04);
+      --success:#10b981; --danger:#ef4444; --max-w:1100px;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, Roboto, Arial; margin:0; background:linear-gradient(180deg,#071126 0%, #081426 100%); color:#e6eef8; display:flex; min-height:100vh; align-items:center; justify-content:center; padding:28px}
+    .wrap{width:100%; max-width:var(--max-w)}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,#0369a1,#7dd3fc);display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+    .card{background:linear-gradient(180deg,var(--card), rgba(11,18,32,0.6));border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .section-title{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .left .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    button.btn{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px 12px;border-radius:10px;cursor:pointer}
+    button.btn.primary{background:linear-gradient(90deg,#0369a1,#7dd3fc); color:#042022; border:none}
+    button.btn.warn{background:linear-gradient(90deg,#f97316,#fb7185); color:white}
+    .panel{display:flex;gap:12px;align-items:flex-start}
+    .video-wrap{flex:1; border-radius:10px; overflow:hidden; background:#000; min-height:220px; display:flex;align-items:center;justify-content:center}
+    video#cam{width:100%;height:100%;object-fit:cover}
+    .output{width:100%;min-height:120px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;color:#dceefb;overflow:auto}
+    label.small{font-size:12px;color:var(--muted)}
+    .right .stack{display:flex;flex-direction:column;gap:10px}
+    .stat{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
+    .stat b{font-size:18px}
+    .muted{color:var(--muted);font-size:13px}
+    footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+    @media (max-width:880px){.grid{grid-template-columns:1fr}}
+    .hint{font-size:12px;color:var(--muted)}
+    .textarea{width:100%;min-height:100px;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+  </style>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const messagesCol = collection(db, "recognizedSigns");
+
+    // Real-time listener: updates #recognized for all users
+    onSnapshot(messagesCol, (snapshot) => {
+      const recognized = document.getElementById('recognized');
+      recognized.innerHTML = '';
+      snapshot.docs.forEach(doc => {
+        const msg = doc.data().text;
+        const div = document.createElement('div');
+        div.textContent = msg;
+        recognized.appendChild(div);
+      });
+    });
+
+    // Function to send recognized text to Firestore
+    window.sendRecognizedText = async (text) => {
+      if(!text) return;
+      await addDoc(messagesCol, { text, timestamp: Date.now() });
+    };
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">VS</div>
+      <div>
+        <h1>VisionSpeak — Assistive Demo UI</h1>
+        <p class="lead">Integrating Speech ↔ Text, Text-to-Speech, and Camera-based sign detection placeholders.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card left">
+        <div class="section-title">Real-time Camera (Sign Recognition)</div>
+        <div class="panel">
+          <div class="video-wrap" aria-live="polite">
+            <video id="cam" autoplay playsinline muted></video>
+            <div id="noCam" class="hint">Camera not started — allow camera access</div>
+          </div>
+          <div style="width:260px;display:flex;flex-direction:column;gap:8px">
+            <div>
+              <label class="small">Model status</label>
+              <div id="modelStatus" class="muted">Model not loaded (placeholder)</div>
+            </div>
+            <div>
+              <label class="small">Recognized Text</label>
+              <div id="recognized" class="output">No gestures detected yet.</div>
+            </div>
+            <div>
+              <label class="small">Actions</label>
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <button class="btn" id="startCam">Start Camera</button>
+                <button class="btn" id="stopCam">Stop Camera</button>
+                <button class="btn primary" id="mockSign">Mock Sign (demo)</button>
+              </div>
+            </div>
+            <div class="hint">Sign recognition requires a trained ML model. This demo provides hooks & UX integration.</div>
+          </div>
+        </div>
+
+        <hr style="border:0;height:12px">
+
+        <div class="section-title">Speech-to-Text (Live)</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <button class="btn" id="sttStart">Start STT</button>
+          <button class="btn" id="sttStop">Stop STT</button>
+          <label class="small">Language</label>
+          <select id="sttLang" style="background:transparent;border-radius:8px;padding:6px;color:inherit">
+            <option value="en-IN">English (India)</option>
+            <option value="hi-IN">Hindi</option>
+          </select>
+        </div>
+        <div id="sttOutput" class="output">Speech-to-text output will appear here.</div>
+
+        <hr style="border:0;height:12px">
+
+        <div class="section-title">Text-to-Speech</div>
+        <textarea id="ttsText" class="textarea" placeholder="Type text here to speak..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button class="btn primary" id="speakBtn">Speak</button>
+          <button class="btn" id="stopSpeak">Stop</button>
+          <label class="small">Voice</label>
+          <select id="voiceSelect" style="background:transparent;border-radius:8px;padding:6px;color:inherit"></select>
+        </div>
+
+      </div>
+
+      <aside class="card right">
+        <div class="section-title">Project Snapshot</div>
+        <div class="stack">
+          <div class="stat"><div><div class="muted">MVP Features</div><b>STT • TTS • Sign Recognition</b></div></div>
+          <div class="stat"><div><div class="muted">Tech</div><b>Web • JS • Media APIs • TF.js (future)</b></div></div>
+          <div class="stat"><div><div class="muted">Accessibility</div><b>Keyboard-friendly, high contrast</b></div></div>
+          <div class="stat"><div><div class="muted">How to run</div><b>Open in browser / Live Server</b></div></div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="section-title">Quick Guide</div>
+          <div class="muted">1. Allow camera/microphone. 2. Click Start STT to transcribe speech. 3. Type + Speak to synthesize. 4. Use Mock Sign to demo sign output.</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="section-title">Limitations</div>
+          <div class="muted">Sign detection requires a trained ML model (TF.js/MediaPipe). This demo provides the UX integration points.</div>
+        </div>
+
+        <footer>Built for VisionSpeak • Demo UI</footer>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // -------- Camera handling --------
+    const startCamBtn = document.getElementById('startCam');
+    const stopCamBtn = document.getElementById('stopCam');
+    const cam = document.getElementById('cam');
+    const noCam = document.getElementById('noCam');
+    let stream = null;
+
+    async function startCamera(){
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+        cam.srcObject = stream;
+        noCam.style.display='none';
+        document.getElementById('modelStatus').textContent = 'Model placeholder — load TF.js model here.';
+      }catch(e){
+        noCam.textContent = 'Camera permission denied or no camera available.';
+      }
+    }
+    function stopCamera(){
+      if(!stream) return;
+      stream.getTracks().forEach(t=>t.stop());
+      cam.srcObject = null; stream = null; noCam.style.display='block';
+    }
+    startCamBtn.addEventListener('click', startCamera);
+    stopCamBtn.addEventListener('click', stopCamera);
+
+    // Mock sign recognition demo (simulate recognized gesture)
+    document.getElementById('mockSign').addEventListener('click', async ()=>{
+      const phrases = ['Hello', 'Thank you', 'Need help', 'Yes', 'No'];
+      const pick = phrases[Math.floor(Math.random()*phrases.length)];
+
+      speakText(pick); // speak locally
+      await sendRecognizedText(pick + ' (simulated)'); // send to Firebase
+    });
+
+    // -------- Speech-to-Text (Web Speech API) --------
+    const sttStart = document.getElementById('sttStart');
+    const sttStop = document.getElementById('sttStop');
+    const sttOutput = document.getElementById('sttOutput');
+    let recognition = null;
+    let recognizing = false;
+
+    function initSTT(){
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SpeechRecognition){ sttOutput.textContent = 'SpeechRecognition API not supported in this browser.'; return; }
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = document.getElementById('sttLang').value || 'en-IN';
+
+      recognition.onresult = async (e)=>{
+        let final = '';
+        for(let i=0;i<e.results.length;i++){
+          if(e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+        }
+        sttOutput.textContent = final;
+        if(final.trim()!==''){
+          await sendRecognizedText(final.trim()); // sync to Firebase
+        }
+      }
+      recognition.onerror = (err)=>{ sttOutput.textContent = 'STT error: ' + err.message }
+      recognition.onend = ()=>{ recognizing=false; sttOutput.textContent += '\n[stopped]'; }
+    }
+
+    sttStart.addEventListener('click', ()=>{
+      if(!recognition) initSTT();
+      if(recognition && !recognizing){ recognition.lang = document.getElementById('sttLang').value; recognition.start(); recognizing=true; sttOutput.textContent='Listening...'; }
+    });
+    sttStop.addEventListener('click', ()=>{ if(recognition && recognizing){ recognition.stop(); recognizing=false; }});
+
+    // -------- Text-to-Speech --------
+    const speakBtn = document.getElementById('speakBtn');
+    const stopSpeak = document.getElementById('stopSpeak');
+    const voiceSelect = document.getElementById('voiceSelect');
+    let voices = [];
+
+    function loadVoices(){
+      voices = speechSynthesis.getVoices();
+      voiceSelect.innerHTML = '';
+      voices.forEach((v,i)=>{
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = v.name + (v.lang? ' ('+v.lang+')':'');
+        voiceSelect.appendChild(opt);
+      });
+    }
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    function speakText(text){
+      if(!text) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      const idx = voiceSelect.value || 0; if(voices[idx]) utter.voice = voices[idx];
+      speechSynthesis.speak(utter);
+    }
+    speakBtn.addEventListener('click', ()=>{ const t = document.getElementById('ttsText').value.trim(); speakText(t); });
+    stopSpeak.addEventListener('click', ()=>{ speechSynthesis.cancel(); });
+
+    // expose speakText for mock/demo
+    window.speakText = speakText;
+
+    // Accessibility: keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.altKey && e.key==='1') startCamera();
+      if(e.altKey && e.key==='2') stopCamera();
+      if(e.altKey && e.key==='s') document.getElementById('sttStart').click();
+      if(e.altKey && e.key==='t') document.getElementById('speakBtn').click();
+    });
+  </script>
+</body>
+</html>
