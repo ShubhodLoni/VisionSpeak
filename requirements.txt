@@ -1,0 +1,12 @@
+# VisionSpeak dependencies (tested on Windows 11, Python 3.13)
+
+# Speech to Text / Text to Speech
+SpeechRecognition>=3.10      # tested 3.17.0
+PyAudio>=0.2.13              # microphone access, tested 0.2.14
+pyttsx3>=2.90                # offline text-to-speech, tested 2.99
+
+# Sign to Text (hand-gesture recognition, runs offline)
+mediapipe>=1.1.0             # HandLandmarker Tasks API, tested 1.1.0
+opencv-contrib-python>=4.8   # webcam capture; the OpenCV build mediapipe itself installs, tested 5.0.0
+numpy>=1.24                  # tested 2.5.3
+Pillow>=9.0                  # shows camera frames in Tkinter, tested 12.3.0
